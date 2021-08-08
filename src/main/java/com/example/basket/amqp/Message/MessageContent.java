@@ -13,5 +13,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 public class MessageContent implements Serializable {
     Long productId;
+    String productName;
+    Double productPrice;
     Integer stock;
 }

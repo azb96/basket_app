@@ -1,6 +1,5 @@
 package com.example.basket.controller;
 
-import com.example.basket.amqp.MessageConsumer;
 import com.example.basket.constant.BasketServiceConstants;
 import com.example.basket.dto.CargoOptionDTO;
 import com.example.basket.dto.ProductDTO;
@@ -35,9 +34,13 @@ public class BasketController {
                                                       @ApiParam(value = "Product resource", required = true) @RequestBody ProductDTO productDTO){
         logger.trace("Received add product request for {}", productDTO.getTitle());
 
-        ProductResource productResource = basketService.addProduct(basketId, productDTO);
+        boolean result = basketService.addProduct(basketId, productDTO);
 
-        return ResponseEntity.status(HttpStatus.OK).body(productResource);
+        if(result){
+            return ResponseEntity.status(HttpStatus.OK).body(null);
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+
     }
 
     //remove product from basket

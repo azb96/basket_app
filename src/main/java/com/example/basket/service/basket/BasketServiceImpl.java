@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,37 +39,18 @@ public class BasketServiceImpl implements BasketService {
         this.cargoOptionRepository = cargoOptionRepository;
     }
 
-//    @Override
-//    public ProductResource addProduct(Long basketId, ProductDTO productDTO) {
-//        Optional<Basket> basket = basketRepository.findById(basketId);
-//        if(basket.isPresent()){
-//
-//            BasketItem basketItem =
-//                    new BasketItem(productDTO.getId(), productDTO.getImage(), productDTO.getTitle(), productDTO.getQuantity(), productDTO.getPrice());
-//
-//            basket.get().getBasketItemSet().add(basketItem);
-//        }else{
-//
-//        }
-//
-//        return productResource;
-//    }
-
     @Override
-    public boolean removeProduct(Long basketId, ProductDTO productDTO) {
+    @Transactional
+    public boolean addProduct(Long basketId, ProductDTO productDTO) {
         Optional<Basket> basket = basketRepository.findById(basketId);
-
         if(basket.isPresent()){
             BasketItem productToAdd = convertProductDTOToBasketItem(productDTO);
-
-            Set<BasketItem> existingProducts = basket.get().getBasketItemSet();
-            if(!existingProducts.contains(productToAdd)){
+            if(!basket.get().getBasketItemSet().contains(productToAdd)){
                 productToAdd.setBasket(basket.get());
-                existingProducts.add(productToAdd);
-
+                basket.get().getBasketItemSet().add(productToAdd);
                 basketItemRepository.save(productToAdd);
             }else{
-                for(BasketItem existingProduct : existingProducts){
+                for(BasketItem existingProduct : basket.get().getBasketItemSet()){
                     if(existingProduct.equals(productToAdd)){
                         existingProduct.setQuantity(existingProduct.getQuantity() + productToAdd.getQuantity());
                     }
@@ -82,6 +64,30 @@ public class BasketServiceImpl implements BasketService {
     }
 
     @Override
+    @Transactional
+    public boolean removeProduct(Long basketId, ProductDTO productDTO) {
+        Optional<Basket> basket = basketRepository.findById(basketId);
+
+        if(basket.isPresent()){
+            BasketItem productToRemove = convertProductDTOToBasketItem(productDTO);
+
+            Set<BasketItem> existingProducts = basket.get().getBasketItemSet();
+            if(existingProducts.contains(productToRemove)){
+                for(BasketItem existingProduct : existingProducts){
+                    if(existingProduct.equals(productToRemove)){
+                        existingProduct.setQuantity(existingProduct.getQuantity() - productToRemove.getQuantity());
+                    }
+                }
+            }
+            basketRepository.save(basket.get());
+        }else{
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    @Transactional
     public boolean addCargoOption(Long basketId, CargoOptionDTO cargoOptionDTO) {
         Optional<Basket> basket = basketRepository.findById(basketId);
         if(basket.isPresent()){
@@ -95,6 +101,17 @@ public class BasketServiceImpl implements BasketService {
             return false;
         }
         return true;
+    }
+
+    @Override
+    public List<String> getBasketOwnerMails(Long productId) {
+        List<BasketItem> basketItems = basketItemRepository.findByProductId(productId);
+        List<String> emailList = new ArrayList<>();
+        for(BasketItem basketItem : basketItems){
+            emailList.add(basketItem.getBasket().getCustomerEmail());
+        }
+
+        return emailList;
     }
 
 
